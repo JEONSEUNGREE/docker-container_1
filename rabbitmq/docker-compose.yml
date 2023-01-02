@@ -1,0 +1,28 @@
+version: '3'
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq-msa
+    ports:
+      - "1001:5672"
+      - "1002:15672"
+    networks:
+      - default
+    environment:
+      RABBITMQ_DEFAULT_USER: "admin"
+      RABBITMQ_DEFAULT_PASS: "admin"
+
+  mysql:
+    image: mysql:5.7
+    container_name: mysql-msa
+    ports:
+    - "1003:3306"
+    networks:
+      - default
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=msa
+
+networks:
+  default:
+    name: msa-project
