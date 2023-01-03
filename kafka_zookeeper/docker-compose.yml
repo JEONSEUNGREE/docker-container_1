@@ -1,0 +1,98 @@
+version: '2'
+services:
+  zookeeper-1:
+    image: wurstmeister/zookeeper:3.4.6
+    container_name: zookeeper1-msa
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+    ports:
+      - "2001:2181"
+    networks:
+      - default
+
+  zookeeper-2:
+    image: wurstmeister/zookeeper:3.4.6
+    container_name: zookeeper2-msa
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+    ports:
+      - "2002:2181"
+    networks:
+      - default
+
+  zookeeper-3:
+    image: wurstmeister/zookeeper:3.4.6
+    container_name: zookeeper3-msa
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+    ports:
+      - "2003:2181"
+    networks:
+      - default
+
+  kafka-1:
+    image: wurstmeister/kafka:2.12-2.0.1
+    container_name: kafka1-msa
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      KAFKA_ADVERTISED_HOST_NAME: 172.72.77.100
+    ports:
+      - "3001:9092"
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    networks:
+      default:
+        ipv4_address: 172.72.77.100
+
+  kafka-2:
+    image: wurstmeister/kafka:2.12-2.0.1
+    container_name: kafka2-msa
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      KAFKA_ADVERTISED_HOST_NAME: 172.72.77.101
+    ports:
+      - "3002:9092"
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    networks:
+      default:
+        ipv4_address: 172.72.77.101
+
+  kafka-3:
+    image: wurstmeister/kafka:2.12-2.0.1
+    container_name: kafka3-msa
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
+      KAFKA_ADVERTISED_HOST_NAME: 172.72.77.102
+    ports:
+      - "3003:9092"
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    networks:
+      default:
+        ipv4_address: 172.72.77.102
+
+networks:
+  default:
+    name: msa-project
