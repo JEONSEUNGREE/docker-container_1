@@ -1,4 +1,4 @@
-version: '2'
+version: "2"
 services:
   zookeeper-1:
     image: wurstmeister/zookeeper:3.4.6
@@ -9,90 +9,47 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_INIT_LIMIT: 5
       ZOOKEEPER_SYNC_LIMIT: 2
+    # 주키퍼는 서버는 2개의 포트를 가진다.
+    # 2888은 서버 노드끼리 통신을 하기 위해서 사용한다.
+    # 3888은 리더 선출을 위해서 사용한다.
+    # ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
     ports:
       - "2001:2181"
     networks:
-      - default
-
-  zookeeper-2:
-    image: wurstmeister/zookeeper:3.4.6
-    container_name: zookeeper2-msa
-    environment:
-      ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-    ports:
-      - "2002:2181"
-    networks:
-      - default
-
-  zookeeper-3:
-    image: wurstmeister/zookeeper:3.4.6
-    container_name: zookeeper3-msa
-    environment:
-      ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-    ports:
-      - "2003:2181"
-    networks:
-      - default
+      ecomm:
 
   kafka-1:
     image: wurstmeister/kafka:2.12-2.0.1
     container_name: kafka1-msa
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
-      KAFKA_ADVERTISED_HOST_NAME: 172.72.77.100
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181
+      # Topic명:Partition개수:Replica개수
+      KAFKA_CREATE_TOPICS: "order-create:1:1, order-rollback:1:1"
+      KAFKA_ADVERTISED_HOST_NAME: 172.18.0.100
     ports:
       - "3001:9092"
     depends_on:
       - zookeeper-1
-      - zookeeper-2
-      - zookeeper-3
+      # - zookeeper-2
+      # - zookeeper-3
+    # volumes:
+    #   - /home/test/script.sh:/script.sh
+    # command:
+    #   - /script.sh
     networks:
-      default:
-        ipv4_address: 172.72.77.100
+      ecomm:
+        ipv4_address: 172.18.0.100
 
-  kafka-2:
-    image: wurstmeister/kafka:2.12-2.0.1
-    container_name: kafka2-msa
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
-      KAFKA_ADVERTISED_HOST_NAME: 172.72.77.101
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin-msa
     ports:
-      - "3002:9092"
-    depends_on:
-      - zookeeper-1
-      - zookeeper-2
-      - zookeeper-3
+      - "3011:9411"
     networks:
-      default:
-        ipv4_address: 172.72.77.101
-
-  kafka-3:
-    image: wurstmeister/kafka:2.12-2.0.1
-    container_name: kafka3-msa
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181
-      KAFKA_ADVERTISED_HOST_NAME: 172.72.77.102
-    ports:
-      - "3003:9092"
-    depends_on:
-      - zookeeper-1
-      - zookeeper-2
-      - zookeeper-3
-    networks:
-      default:
-        ipv4_address: 172.72.77.102
+      ecomm:
 
 networks:
-  default:
-    name: msa-project
+  ecomm:
+    external: true
+    name: ecommerce-network

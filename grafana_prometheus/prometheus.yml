@@ -26,28 +26,36 @@ scrape_configs:
     # scheme defaults to 'http'.
 
     static_configs:
-      - targets: ["prometheus:9090"]
-      
-  - job_name: 'user-service'
-    scrape_interval: 15s
-    # service name
-    metrics_path: '/user-service/actuator/prometheus'
-    # apigateway address
-    static_configs:
-    - targets: ['user-service:8000']
+      - targets: ["localhost:9090"]
 
-  - job_name: 'apigateway-service'
+  - job_name: "user-service"
     scrape_interval: 15s
     # service name
-    metrics_path: '/actuator/prometheus'
+    metrics_path: "/user-service/actuator/prometheus"
     # apigateway address
     static_configs:
-    - targets: ['apigateway-service:8000']
+      - targets: ["apigateway-service:4001"]
 
-  - job_name: 'order-service'
+  - job_name: "apigateway-service"
     scrape_interval: 15s
     # service name
-    metrics_path: '/order-service/actuator/prometheus'
+    metrics_path: "/actuator/prometheus"
     # apigateway address
     static_configs:
-    - targets: ['order-service:8000']
+      - targets: ["apigateway-service:4001"]
+
+  - job_name: "order-service"
+    scrape_interval: 15s
+    # service name
+    metrics_path: "/order-service/actuator/prometheus"
+    # apigateway address
+    static_configs:
+      - targets: ["apigateway-service:4001"]
+
+  - job_name: "product-service"
+    scrape_interval: 15s
+    # service name
+    metrics_path: "/product-service/actuator/prometheus"
+    # apigateway address
+    static_configs:
+      - targets: ["apigateway-service:4001"]

@@ -1,0 +1,61 @@
+# 외부 포트 포워딩한 포트와 도커 내부 포트번호는 다르다
+# 동일 네트워크의 컨테이너라면 서비스이름으로 ip맵핑은 되는데 외부 포트가아닌 내부 포트로 맵핑해야한다.
+version: "2"
+services:
+  config-service:
+    ports:
+      - "10002:10002"
+    image: acoursove2/config-service:1.0
+    container_name: config-service
+    # 추후 개발시 ping으로 설정하는 부분이 정확함
+    healthcheck:
+      test: "sleep 5 || exit 0"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      ecomm:
+
+  eureka-service:
+    ports:
+      - "8761:8761"
+    image: acoursove2/eureka-service:1.0
+    container_name: eureka-service
+    environment:
+      spring.rabbitmq.host: rabbitmq
+      spring.rabbitmq.port: 5672
+      spring.cloud.config.uri: http://config-service:10002
+    depends_on:
+      config-service:
+        condition: service_healthy
+    healthcheck:
+      test: "sleep 5 || exit 0"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      ecomm:
+
+  apigateway-service:
+    ports:
+      - "4001:4001"
+    image: acoursove2/apigateway-service:1.0
+    container_name: apigateway-service
+    environment:
+      spring.rabbitmq.host: rabbitmq
+      spring.rabbitmq.port: 5672
+      spring.cloud.config.uri: http://config-service:10002
+      eureka.client.serviceUrl.defaultZone: http://eureka-service:8761/eureka/
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+    networks:
+      ecomm:
+
+
+networks:
+  ecomm:
+    external: true
+    name: ecommerce-network

@@ -1,4 +1,4 @@
-version: '2'
+version: "2"
 services:
   prometheus:
     image: prom/prometheus
@@ -6,12 +6,14 @@ services:
     ports:
       - "3018:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
+      - "--config.file=/etc/prometheus/prometheus.yml"
     restart: always
+    # 도커 내부에서 호스트 포트 접속시 임시 설정용
+    # 호스트 네트워크 사용시는 ports 꺼둘것(도커 내부 네트워크를 사용하지않아 포워딩 오류 발생)
     networks:
-      - default
+      ecomm:
 
   grafana:
     image: "grafana/grafana"
@@ -24,12 +26,15 @@ services:
       - GF_SERVER_DOMAIN=localhost
       - GF_SERVER_HTTP_PORT=3000
     restart: always
+    volumes:
+      - ./datasources:/etc/grafana/provisioning/datasources
     depends_on:
       - prometheus
     privileged: true
     networks:
-      - default
+      ecomm:
 
 networks:
-  default:
-    name: msa-project
+  ecomm:
+    external: true
+    name: ecommerce-network

@@ -1,0 +1,261 @@
+version: "2"
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "1002:15672"
+      - "1001:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "admin"
+      RABBITMQ_DEFAULT_PASS: "admin"
+    healthcheck:
+      test: "sleep 5 || exit 0"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      ecomm:
+
+  mysql:
+    image: mysql:5.7
+    container_name: mysql-msa-user
+    ports:
+      - "1003:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=msa
+    networks:
+      ecomm:
+
+  mysql-product:
+    image: mysql:5.7
+    container_name: mysql-msa-product
+    ports:
+      - "1004:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=msa
+    networks:
+      ecomm:
+
+  mysql-order:
+    image: mysql:5.7
+    container_name: mysql-msa-order
+    ports:
+      - "1005:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=msa
+    networks:
+      ecomm:
+  zookeeper-1:
+    image: wurstmeister/zookeeper:3.4.6
+    container_name: zookeeper1-msa
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+    ports:
+      - "2001:2181"
+    networks:
+      ecomm:
+
+  kafka-1:
+    image: wurstmeister/kafka:2.12-2.0.1
+    container_name: kafka1-msa
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181
+      KAFKA_CREATE_TOPICS: "order-create:1:1, order-rollback:1:1"
+      KAFKA_ADVERTISED_HOST_NAME: 172.18.0.100
+    ports:
+      - "3001:9092"
+    depends_on:
+      - zookeeper-1
+    networks:
+      ecomm:
+        ipv4_address: 172.18.0.100
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin-msa
+    ports:
+      - "3011:9411"
+    networks:
+      ecomm:
+
+  prometheus:
+    image: acoursove2/prometheus-msa:1.0
+    container_name: prometheus-msa
+    ports:
+      - "3018:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    restart: always
+    networks:
+      ecomm:
+
+  grafana:
+    image: acoursove2/grafana-msa:1.0
+    container_name: grafana-msa
+    ports:
+      - "3017:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_DOMAIN=localhost
+      - GF_SERVER_HTTP_PORT=3000
+    restart: always
+    depends_on:
+      - prometheus
+    privileged: true
+    networks:
+      ecomm:
+
+  # 스프링 서버들
+  config-service:
+    ports:
+      - "10002:10002"
+    image: acoursove2/config-service:1.0
+    container_name: config-service
+    # 추후 개발시 ping으로 설정하는 부분이 정확함
+    healthcheck:
+      test: "sleep 5 || exit 0"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      ecomm:
+
+  eureka-service:
+    ports:
+      - "8761:8761"
+    image: acoursove2/eureka-service:1.0
+    container_name: eureka-service
+    environment:
+      spring.rabbitmq.host: rabbitmq
+      spring.rabbitmq.port: 5672
+      spring.cloud.config.uri: http://config-service:10002
+    healthcheck:
+      test: "sleep 5 || exit 0"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      config-service:
+        condition: service_healthy
+    networks:
+      ecomm:
+
+  apigateway-service:
+    ports:
+      - "4001:4001"
+    image: acoursove2/apigateway-service:1.0
+    container_name: apigateway-service
+    environment:
+      spring.rabbitmq.host: rabbitmq
+      spring.rabbitmq.port: 5672
+      spring.cloud.config.uri: http://config-service:10002
+      eureka.client.serviceUrl.defaultZone: http://eureka-service:8761/eureka/
+    healthcheck:
+      test: "sleep 5 || exit 0"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+    networks:
+      ecomm:
+
+  user-service:
+    image: acoursove2/user-service:1.0
+    container_name: user-service
+    environment:
+      spring.rabbitmq.host: rabbitmq
+      spring.rabbitmq.port: 5672
+      spring.cloud.config.uri: http://config-service:10002
+      eureka.client.serviceUrl.defaultZone: http://eureka-service:8761/eureka/
+      spring.zipkin.baseUrl: http://zipkin:9411
+      spring.kafka.consumer.bootstrapServers: 172.18.0.100:9092
+      spring.kafka.producer.bootstrapServers: 172.18.0.100:9092
+      spring.datasource.url: jdbc:mysql://mysql:3306/msa?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+      # frontServer.port: http://frontend:1221
+    # 추후 개발시 ping으로 설정하는 부분이 정확함
+    healthcheck:
+      test: "sleep 5 || exit 0"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      apigateway-service:
+        condition: service_healthy
+    networks:
+      ecomm:
+
+  order-service:
+    image: acoursove2/order-service:1.0
+    container_name: order-service
+    environment:
+      spring.rabbitmq.host: rabbitmq
+      spring.rabbitmq.port: 5672
+      spring.cloud.config.uri: http://config-service:10002
+      eureka.client.serviceUrl.defaultZone: http://eureka-service:8761/eureka/
+      spring.zipkin.baseUrl: http://zipkin:9411
+      spring.kafka.consumer.bootstrapServers: 172.18.0.100:9092
+      spring.kafka.producer.bootstrapServers: 172.18.0.100:9092
+      spring.datasource.url: jdbc:mysql://mysql-order:3306/msa?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    healthcheck:
+      test: "sleep 5 || exit 0"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      user-service:
+        condition: service_healthy
+    networks:
+      ecomm:
+
+  product-service:
+    image: acoursove2/product-service:1.0
+    container_name: product-service
+    environment:
+      spring.rabbitmq.host: rabbitmq
+      spring.rabbitmq.port: 5672
+      spring.cloud.config.uri: http://config-service:10002
+      eureka.client.serviceUrl.defaultZone: http://eureka-service:8761/eureka/
+      spring.zipkin.baseUrl: http://zipkin:9411
+      spring.kafka.consumer.bootstrapServers: 172.18.0.100:9092
+      spring.kafka.producer.bootstrapServers: 172.18.0.100:9092
+      spring.datasource.url: jdbc:mysql://mysql-product:3306/msa?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+      file.request.path: file:///service/product-images/
+    healthcheck:
+      test: "sleep 5 || exit 0"
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      order-service:
+        condition: service_healthy
+    networks:
+      ecomm:
+
+networks:
+  ecomm:
+    external: true
+    name: ecommerce-network

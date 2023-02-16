@@ -1,28 +1,51 @@
-version: '3'
+version: "2"
 services:
   rabbitmq:
     image: rabbitmq:management
-    container_name: rabbitmq-msa
+    container_name: rabbitmq
     ports:
-      - "1001:5672"
       - "1002:15672"
-    networks:
-      - default
+      - "1001:5672"
     environment:
       RABBITMQ_DEFAULT_USER: "admin"
       RABBITMQ_DEFAULT_PASS: "admin"
+    networks:
+      ecomm:
 
   mysql:
     image: mysql:5.7
-    container_name: mysql-msa
+    container_name: mysql-msa-user
     ports:
-    - "1003:3306"
-    networks:
-      - default
+      - "1003:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=admin
       - MYSQL_DATABASE=msa
+    networks:
+      ecomm:
+
+  mysql-product:
+    image: mysql:5.7
+    container_name: mysql-msa-product
+    ports:
+      - "1004:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=msa
+    networks:
+      ecomm:
+
+  mysql-order:
+    image: mysql:5.7
+    container_name: mysql-msa-order
+    ports:
+      - "1005:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=admin
+      - MYSQL_DATABASE=msa
+    networks:
+      ecomm:
 
 networks:
-  default:
-    name: msa-project
+  ecomm:
+    external: true
+    name: ecommerce-network
