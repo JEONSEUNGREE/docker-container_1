@@ -2,7 +2,6 @@
 
 앨범 판매 마이크로 서비스 도커환경 배포
 
-MSA_PROJECT Docker <br>
 사용한 외부 포트 (호스트 포트에 충돌 나는 경우 docker compose ports 수정 필요) <br>
 도커 네트워크 사용으로 내부적으로 충돌 나지않음
 
