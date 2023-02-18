@@ -181,7 +181,7 @@ services:
       ecomm:
 
   user-service:
-    image: acoursove2/user-service:1.0
+    image: acoursove2/user-service:2.0
     container_name: user-service
     environment:
       spring.rabbitmq.host: rabbitmq
@@ -251,6 +251,16 @@ services:
       start_period: 5s
     depends_on:
       order-service:
+        condition: service_healthy
+    networks:
+      ecomm:
+
+  react-front:
+    image: acoursove2/nginx-react:3.0
+    ports:
+      - "1221:80"
+    depends_on:
+      product-service:
         condition: service_healthy
     networks:
       ecomm:
