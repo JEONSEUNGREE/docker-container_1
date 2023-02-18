@@ -192,8 +192,6 @@ services:
       spring.kafka.consumer.bootstrapServers: 172.18.0.100:9092
       spring.kafka.producer.bootstrapServers: 172.18.0.100:9092
       spring.datasource.url: jdbc:mysql://mysql:3306/msa?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
-      # frontServer.port: http://frontend:1221
-    # 추후 개발시 ping으로 설정하는 부분이 정확함
     healthcheck:
       test: "sleep 5 || exit 0"
       interval: 5s
